@@ -1,0 +1,18 @@
+{
+    "version": "1.0.0",
+    "summary": "Extension to the RemoteData package to deal with cached values",
+    "repository": "https://github.com/imbybio/cachedremotedata.git",
+    "license": "MIT",
+    "source-directories": [
+        "./src"
+    ],
+    "exposed-modules": [
+        "CachedRemoteData"
+    ],
+    "dependencies": {
+        "elm-lang/core": "5.1.1 <= v < 6.0.0",
+        "elm-lang/http": "1.0.0 <= v < 2.0.0",
+        "krisajenkins/remotedata": "4.3.1 <= v < 5.0.0"
+    },
+    "elm-version": "0.18.0 <= v < 0.19.0"
+}
