@@ -7,12 +7,26 @@ import CachedRemoteData exposing(..)
 import RemoteData exposing(RemoteData)
 
 
-all : Test
-all =
+constructors : Test
+constructors =
     describe "Constructors"
-        [ test "fromRemoteData" <|
-            \() ->
-                Expect.equal
-                    NotAsked
-                    (fromRemoteData RemoteData.NotAsked)
+        [ describe "fromRemoteData"
+            [ test "NotAsked" <|
+                \() ->
+                    Expect.equal
+                        NotAsked
+                        (fromRemoteData RemoteData.NotAsked)
+            ]
+        , describe "fromValue"
+            [ test "Nothing" <|
+                \() ->
+                    Expect.equal
+                        NotAsked
+                        (fromValue Nothing)
+            , test "Just v" <|
+                \() ->
+                    Expect.equal
+                        (Success "ok")
+                        (fromValue (Just "ok"))
+            ]
         ]
