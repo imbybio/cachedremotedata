@@ -4,7 +4,8 @@ import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer, int, list, string)
 import Test exposing (..)
 import CachedRemoteData exposing(..)
-import RemoteData exposing(RemoteData)
+import RemoteData
+import Result
 
 
 constructors : Test
@@ -28,5 +29,17 @@ constructors =
                     Expect.equal
                         (Success "ok")
                         (fromValue (Just "ok"))
+            ]
+        , describe "fromResult"
+            [ test "Ok v" <|
+                \() ->
+                    Expect.equal
+                        (Success "ok")
+                        (fromResult (Result.Ok "ok"))
+            ,  test "Err e" <|
+                \() ->
+                    Expect.equal
+                        (Failure "err")
+                        (fromResult (Result.Err "err"))
             ]
         ]
