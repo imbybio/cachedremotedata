@@ -17,6 +17,7 @@ module CachedRemoteData exposing
     , isStale
     , map
     , mapError
+    , mapBoth
     , andThen
     , sendRequest
     , sendRequestWithValue
@@ -315,6 +316,19 @@ mapError fn cached =
 
         Refreshing v ->
             Refreshing v
+
+{-|
+Map function into both the success and failure values.
+-}
+mapBoth : (a -> b) -> (e -> f) -> CachedRemoteData e a -> CachedRemoteData f b
+mapBoth vfun efun data =
+    case data of
+        NotAsked -> NotAsked
+        Loading -> Loading
+        Success v -> Success (vfun v)
+        Failure e -> Failure (efun e)
+        Refreshing v -> Refreshing (vfun v)
+        Stale e v -> Stale (efun e) (vfun v)
 
 {-|
 Chain together CachedRemoteData function calls.

@@ -209,6 +209,33 @@ mapping =
                         (Stale 3 "ok")
                         (mapError String.length (Stale "err" "ok"))
             ]
+        , describe "mapBoth"
+            [ test "NotAsked" <|
+                \() ->
+                    Expect.equal
+                        NotAsked
+                        (mapBoth String.length String.length NotAsked)
+            , test "Success v" <|
+                \() ->
+                    Expect.equal
+                        (Success 2)
+                        (mapBoth String.length String.length (Success "ok"))
+            , test "Failure e" <|
+                \() ->
+                    Expect.equal
+                        (Failure 3)
+                        (mapBoth String.length String.length (Failure "err"))
+            , test "Refreshing v" <|
+                \() ->
+                    Expect.equal
+                        (Refreshing 2)
+                        (mapBoth String.length String.length (Refreshing "ok"))
+            , test "Stale e v" <|
+                \() ->
+                    Expect.equal
+                        (Stale 3 2)
+                        (mapBoth String.length String.length (Stale "err" "ok"))
+            ]
         ]
 
 chaining: Test
