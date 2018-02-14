@@ -210,3 +210,28 @@ mapping =
                         (mapError String.length (Stale "err" "ok"))
             ]
         ]
+
+chaining: Test
+chaining =
+    describe "Chaining functions (andThen)"
+        [ test "Loading" <|
+            \() ->
+                Expect.equal
+                    NotAsked
+                    (andThen (\v -> Success (String.length v)) Loading)
+        , test "Success v" <|
+            \() ->
+                Expect.equal
+                    (Success 2)
+                    (andThen (\v -> Success (String.length v)) (Success "ok"))
+        , test "Refreshing v" <|
+            \() ->
+                Expect.equal
+                    NotAsked
+                    (andThen (\v -> Success (String.length v)) (Refreshing "ok"))
+        , test "Stale e v" <|
+            \() ->
+                Expect.equal
+                    NotAsked
+                    (andThen (\v -> Success (String.length v)) (Stale "err" "ok"))
+        ]

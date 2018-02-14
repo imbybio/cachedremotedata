@@ -17,6 +17,7 @@ module CachedRemoteData exposing
     , isStale
     , map
     , mapError
+    , andThen
     , sendRequest
     , sendRequestWithValue
     , sendRequestWithCached
@@ -36,8 +37,8 @@ An extension to the `RemoteData` package that supports cached values.
 @docs remoteData, value, result
 @docs isNotAsked, isLoading, isSuccess, isFailure, isRefreshing, isStale
 
-#Mapping
-@docs map, mapError
+#Mapping and chaining
+@docs map, mapError, andThen
 
 #Sending HTTP requests
 @docs sendRequest, sendRequestWithValue, sendRequestWithCached
@@ -315,6 +316,14 @@ mapError fn cached =
         Refreshing v ->
             Refreshing v
 
+{-|
+Chain together CachedRemoteData function calls.
+-}
+andThen: (a -> CachedRemoteData e b) -> CachedRemoteData e a -> CachedRemoteData e b
+andThen fun data =
+    case data of
+        Success v -> fun v
+        _ -> NotAsked
 
 {-|
 Convenience function for dispatching `Http.Request`s.
