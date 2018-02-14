@@ -9,6 +9,12 @@ module CachedRemoteData exposing
     , remoteData
     , value
     , result
+    , isNotAsked
+    , isLoading
+    , isSuccess
+    , isFailure
+    , isRefreshing
+    , isStale
     , map
     , mapError
     , sendRequest
@@ -26,8 +32,9 @@ An extension to the `RemoteData` package that supports cached values.
 #Constructors
 @docs fromRemoteData, fromValue, fromResult, fromValueAndResult, fromValueAndRemoteData
 
-#Data access
+#Data access and state checks
 @docs remoteData, value, result
+@docs isNotAsked, isLoading, isSuccess, isFailure, isRefreshing, isStale
 
 #Mapping
 @docs map, mapError
@@ -203,6 +210,61 @@ result cached =
         _ ->
             Nothing
 
+{-|
+State checking predicate. Returns true if we haven't asked for data yet.
+-}
+isNotAsked: CachedRemoteData e a -> Bool
+isNotAsked data =
+    case data of
+        NotAsked -> True
+        _ -> False
+
+{-|
+State checking predicate. Returns true if we're loading.
+-}
+isLoading: CachedRemoteData e a -> Bool
+isLoading data =
+    case data of
+        Loading -> True
+        _ -> False
+
+{-|
+State checking predicate. Returns true if we've successfully loaded some data.
+-}
+isSuccess: CachedRemoteData e a -> Bool
+isSuccess data =
+    case data of
+        Success _ -> True
+        _ -> False
+
+{-|
+State checking predicate. Returns true if we've failed to load some data.
+-}
+isFailure: CachedRemoteData e a -> Bool
+isFailure data =
+    case data of
+        Failure _ -> True
+        _ -> False
+
+{-|
+State checking predicate. Returns true if we're refreshing data that was
+previously successfully loaded.
+-}
+isRefreshing: CachedRemoteData e a -> Bool
+isRefreshing data =
+    case data of
+        Refreshing _ -> True
+        _ -> False
+
+{-|
+State checking predicate. Returns true if we previously sucessfully loaded some
+data but failed the last time we attempted to refresh it.
+-}
+isStale: CachedRemoteData e a -> Bool
+isStale data =
+    case data of
+        Stale _ _ -> True
+        _ -> False
 
 {-|
 Map a `CachedRemoteData` from type `a` to type `b`

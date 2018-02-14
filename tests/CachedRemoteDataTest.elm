@@ -135,6 +135,23 @@ getters =
             ]
         ]
 
+states : Test
+states =
+    describe "State checking predicates"
+        [ describe "isRefreshing"
+            [ test "True" <|
+                \() ->
+                    Expect.equal
+                        True
+                        (isRefreshing (Refreshing "ok"))
+            , test "False" <|
+                \() ->
+                    Expect.equal
+                        False
+                        (isRefreshing NotAsked)
+            ]
+        ]
+
 mapping : Test
 mapping =
     describe "Mapping functions"
