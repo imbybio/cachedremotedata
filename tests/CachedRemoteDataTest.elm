@@ -134,3 +134,62 @@ getters =
                         (remoteData (Stale "err" "ok"))
             ]
         ]
+
+mapping : Test
+mapping =
+    describe "Mapping functions"
+        [ describe "map"
+            [ test "NotAsked" <|
+                \() ->
+                    Expect.equal
+                        NotAsked
+                        (map String.length NotAsked)
+            , test "Success v" <|
+                \() ->
+                    Expect.equal
+                        (Success 2)
+                        (map String.length (Success "ok"))
+            , test "Failure e" <|
+                \() ->
+                    Expect.equal
+                        (Failure "err")
+                        (map String.length (Failure "err"))
+            , test "Refreshing v" <|
+                \() ->
+                    Expect.equal
+                        (Refreshing 2)
+                        (map String.length (Refreshing "ok"))
+            , test "Stale e v" <|
+                \() ->
+                    Expect.equal
+                        (Stale "err" 2)
+                        (map String.length (Stale "err" "ok"))
+            ]
+        , describe "mapError"
+            [ test "NotAsked" <|
+                \() ->
+                    Expect.equal
+                        NotAsked
+                        (mapError String.length NotAsked)
+            , test "Success v" <|
+                \() ->
+                    Expect.equal
+                        (Success "ok")
+                        (mapError String.length (Success "ok"))
+            , test "Failure e" <|
+                \() ->
+                    Expect.equal
+                        (Failure 3)
+                        (mapError String.length (Failure "err"))
+            , test "Refreshing v" <|
+                \() ->
+                    Expect.equal
+                        (Refreshing "ok")
+                        (mapError String.length (Refreshing "ok"))
+            , test "Stale e v" <|
+                \() ->
+                    Expect.equal
+                        (Stale 3 "ok")
+                        (mapError String.length (Stale "err" "ok"))
+            ]
+        ]
