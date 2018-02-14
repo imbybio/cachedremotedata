@@ -16,6 +16,9 @@ module CachedRemoteData exposing
     , isRefreshing
     , isStale
     , map
+    , map2
+    , map3
+    , andMap
     , mapError
     , mapBoth
     , andThen
@@ -39,7 +42,7 @@ An extension to the `RemoteData` package that supports cached values.
 @docs isNotAsked, isLoading, isSuccess, isFailure, isRefreshing, isStale
 
 #Mapping and chaining
-@docs map, mapError, andThen
+@docs map, map2, map3, andMap, mapError, mapBoth, andThen
 
 #Sending HTTP requests
 @docs sendRequest, sendRequestWithValue, sendRequestWithCached
@@ -292,6 +295,43 @@ map fn cached =
         Failure e ->
             Failure e
 
+{-|
+Combine two cached remote data sources with the given function. The result will
+succeed when (and if) both sources succeed.
+-}
+map2 : (a -> b -> c) -> CachedRemoteData e a -> CachedRemoteData e b -> CachedRemoteData e c
+map2 fn d1 d2 =
+    map fn d1 |> andMap d2
+
+{-|
+Combine three cached remote data sources with the given function. The result will
+succeed when (and if) all sources succeed.
+-}
+map3 : (a -> b -> c -> d) -> CachedRemoteData e a -> CachedRemoteData e b -> CachedRemoteData e c -> CachedRemoteData e d
+map3 fn d1 d2 d3 =
+    map fn d1 |> andMap d2 |> andMap d3
+
+{-|
+Put the results of two `CachedRemoteData` calls together.
+-}
+andMap : CachedRemoteData e a -> CachedRemoteData e (a -> b) -> CachedRemoteData e b
+andMap adata fndata =
+    case (adata, fndata) of
+        (Success v, Success fn) -> Success (fn v)
+        (Success v, Refreshing fn) -> Refreshing (fn v)
+        (Success v, Stale e fn) -> Stale e (fn v)
+        (Refreshing v, Success fn) -> Refreshing (fn v)
+        (Refreshing v, Refreshing fn) -> Refreshing (fn v)
+        (Refreshing v, Stale e fn) -> Stale e (fn v)
+        (Stale e v, Success fn) -> Stale e (fn v)
+        (Stale e v, Refreshing fn) -> Stale e (fn v)
+        (Stale e v, Stale _ fn) -> Stale e (fn v)
+        (NotAsked, _) -> NotAsked
+        (Loading, _) -> Loading
+        (Failure e, _) -> Failure e
+        (_, NotAsked) -> NotAsked
+        (_, Loading) -> Loading
+        (_, Failure e) -> Failure e
 
 {-|
 Map a `CachedRemoteData` error from type `e` to type `f`
