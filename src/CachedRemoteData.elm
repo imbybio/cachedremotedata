@@ -38,64 +38,64 @@ from a feed.
 
 First you wrap the data in `CachedWebData` in your model:
 
-    ```elm
-    type alias Model =
-        { news: CachedWebData News }
-    ```
+```elm
+type alias Model =
+    { news: CachedWebData News }
+```
 
 Then add it in a message that will deliver the response and one that will
 trigger a refresh based on user actions:
 
-    ```elm
-    type Msg
-        = NewsResponse (CachedWebData News)
-        | RefreshNews
-    ```
+```elm
+type Msg
+    = NewsResponse (CachedWebData News)
+    | RefreshNews
+```
 
 Now you can create a couple of HTTP functions to get and refresh it:
 
 
-    ```elm
-    getNews : Cmd Msg
-    getNews =
-        Http.get "/news" decodeNews
-            |> CachedRemoteData.sendRequest
-            |> Cmd.map NewsResponse
+```elm
+getNews : Cmd Msg
+getNews =
+    Http.get "/news" decodeNews
+        |> CachedRemoteData.sendRequest
+        |> Cmd.map NewsResponse
 
-    refreshNews : CachedWebData News -> Cmd Msg
-    refreshNews oldNews =
-        Http.get "/news" decodeNews
-            |> CachedRemoteData.sendRequestWithCachedData oldNews
-            |> Cmd.map NewsResponse
-    ```
+refreshNews : CachedWebData News -> Cmd Msg
+refreshNews oldNews =
+    Http.get "/news" decodeNews
+        |> CachedRemoteData.sendRequestWithCachedData oldNews
+        |> Cmd.map NewsResponse
+```
 
 We trigger the initial retrieval in the `init` function:
 
-    ```elm
-    init : (Model, Cmd Msg)
-    init =
-        ( { news = Loading }
-        , getNews
-        )
-    ```
+```elm
+init : (Model, Cmd Msg)
+init =
+    ( { news = Loading }
+    , getNews
+    )
+```
 
 We handle the retrieval and refresh in our update function:
 
-    ```elm
-    update msg model =
-        case msg of
-            NewsResponse response ->
-                ( { model | news = response }
-                , Cmd.none
+```elm
+update msg model =
+    case msg of
+        NewsResponse response ->
+            ( { model | news = response }
+            , Cmd.none
+            )
+        RefreshNews ->
+            let
+                refreshingNews = CachedRemoteData.refresh model.news
+            in
+                ( { model | news = refreshingNews
+                , refreshNews refreshingNews
                 )
-            RefreshNews ->
-                let
-                    refreshingNews = CachedRemoteData.refresh model.news
-                in
-                    ( { model | news = refreshingNews
-                    , refreshNews refreshingNews
-                    )
-    ```
+```
 
 Most of this you'd already have in your app, and the changes are just wrapping
 the datatype in `CachedWebdata`, and replacing the `Http.send` call with
@@ -104,52 +104,52 @@ the datatype in `CachedWebdata`, and replacing the `Http.send` call with
 Now we get to where we really want to be, rendering the data and handling the
 different states in the UI gracefully:
 
-    ```elm
-    view : Model -> Html msg
-    view model =
-      case model.news of
-        NotAsked -> text "Initialising."
+```elm
+view : Model -> Html msg
+view model =
+  case model.news of
+    NotAsked -> text "Initialising."
 
-        Loading -> text "Loading."
+    Loading -> text "Loading."
 
-        Failure err -> text ("Error: " ++ toString err)
+    Failure err -> text ("Error: " ++ toString err)
 
-        Success news -> viewFreshNews news
+    Success news -> viewFreshNews news
 
-        Refreshing news -> viewRefreshingNews news
+    Refreshing news -> viewRefreshingNews news
 
-        Stale err news -> viewStaleNews err news
-
-
-    viewFreshNews : News -> Html msg
-    viewFreshNews news =
-        div []
-            [ h1 [] [text "Here are fresh news." ]
-            , button [onClick RefreshNews] [text "Refresh"]
-            , viewNews news
-            ]
+    Stale err news -> viewStaleNews err news
 
 
-    viewRefreshingNews : News -> Html msg
-    viewRefreshingNews news =
-        div []
-            [ h1 [] [text "Here are news." ]
-            , p [] [text "Refreshing..."]
-            , viewNews news
-            ]
+viewFreshNews : News -> Html msg
+viewFreshNews news =
+    div []
+        [ h1 [] [text "Here are fresh news." ]
+        , button [onClick RefreshNews] [text "Refresh"]
+        , viewNews news
+        ]
 
 
-    viewStaleNews : Http.Error -> News -> Html msg
-    viewStaleNews err news =
-        div []
-            [ h1 [] [text "Here are old and stale news." ]
-            , button [onClick RefreshNews] [text "Refresh"]
-            , viewNews news
-            ]
+viewRefreshingNews : News -> Html msg
+viewRefreshingNews news =
+    div []
+        [ h1 [] [text "Here are news." ]
+        , p [] [text "Refreshing..."]
+        , viewNews news
+        ]
 
 
-    viewNews : News -> Html msg
-    ```
+viewStaleNews : Http.Error -> News -> Html msg
+viewStaleNews err news =
+    div []
+        [ h1 [] [text "Here are old and stale news." ]
+        , button [onClick RefreshNews] [text "Refresh"]
+        , viewNews news
+        ]
+
+
+viewNews : News -> Html msg
+```
 
 #Data types
 @docs CachedRemoteData, CachedWebData
