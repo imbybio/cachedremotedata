@@ -307,3 +307,13 @@ chaining =
                     NotAsked
                     (andThen (\v -> Success (String.length v)) (Stale "err" "ok"))
         ]
+
+convenience : Test
+convenience =
+    describe "Convenience functions"
+        [ test "refresh" <|
+            \() ->
+                Expect.equal
+                    (Refreshing "a")
+                    (refresh (Success "a"))
+        ]

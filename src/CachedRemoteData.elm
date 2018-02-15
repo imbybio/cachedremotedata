@@ -25,6 +25,7 @@ module CachedRemoteData exposing
     , sendRequest
     , sendRequestWithValue
     , sendRequestWithCachedData
+    , refresh
     )
 
 {-|
@@ -32,8 +33,27 @@ An extension to the `RemoteData` package that supports cached values. It makes
 no assumptions on how the data is cached and just manipulates a `Maybe a` to
 represent a value that may or may not be known.
 
-In a similar way to `RemoteData`, it is designed to work with the `Http`
-package:
+To use the datatype, let's look at an example that loads and refreshes `News`
+from a feed.
+
+First you wrap the data in `CachedWebData` in your model:
+
+    ```elm
+    type alias Model =
+        { news: CachedWebData News }
+    ```
+
+The add it in a message that will deliver the response and one that will
+trigger a refresh based on user actions:
+
+    ```elm
+    type Msg
+        = NewsResponse (CachedWebData News)
+        | RefreshNews
+    ```
+
+Now you can create a could of HTTP get function to get and refresh it:
+
 
     ```elm
     getNews : Cmd Msg
@@ -41,26 +61,94 @@ package:
         Http.get "/news" decodeNews
             |> CachedRemoteData.sendRequest
             |> Cmd.map NewsResponse
-    ```
 
-Or when a cached version of the news is in the model:
-
-    ```elm
-    getNews : Maybe News -> Cmd Msg
-    getNews oldNews =
-        Http.get "/news" decodeNews
-            |> CachedRemoteData.sendRequestWithValue oldNews
-            |> Cmd.map NewsResponse
-    ```
-
-Or if the model actually stores the `CachedWebData` itself:
-
-    ```elm
-    getNews : CachedWebData News -> Cmd Msg
-    getNews oldNews =
+    refreshNews : CachedWebData News -> Cmd Msg
+    refreshNews oldNews =
         Http.get "/news" decodeNews
             |> CachedRemoteData.sendRequestWithCachedData oldNews
             |> Cmd.map NewsResponse
+    ```
+
+We trigger the initial retrieval in the `init` function:
+
+    ```elm
+    init : (Model, Cmd Msg)
+    init =
+        ( { news = Loading }
+        , getNews
+        )
+    ```
+
+We handle the retrieval and refresh in our update function:
+
+    ```elm
+    update msg model =
+        case msg of
+            NewsResponse response ->
+                ( { model | news = response }
+                , Cmd.none
+                )
+            RefreshNews ->
+                let
+                    refreshingNews = CachedRemoteData.refresh model.news
+                in
+                    ( { model | news = refreshingNews
+                    , refreshNews refreshingNews
+                    )
+    ```
+
+Most of this you'd already have in your app, and the changes are just wrapping
+the datatype in `CachedWebdata`, and replacing the `Http.send` call with
+`CachedRemoteData.sendRequest` or `CachedRemoteData.sendRequestWithCachedData`.
+
+Now we get to where we really want to be, rendering the data and handling the
+different states in the UI gracefully:
+
+    ```elm
+    view : Model -> Html msg
+    view model =
+      case model.news of
+        NotAsked -> text "Initialising."
+
+        Loading -> text "Loading."
+
+        Failure err -> text ("Error: " ++ toString err)
+
+        Success news -> viewFreshNews news
+
+        Refreshing news -> viewRefreshingNews news
+
+        Stale err news -> viewStaleNews err news
+
+
+    viewFreshNews : News -> Html msg
+    viewFreshNews news =
+        div []
+            [ h1 [] [text "Here are fresh news." ]
+            , button [onClick RefreshNews] [text "Refresh"]
+            , viewNews news
+            ]
+
+
+    viewRefreshingNews : News -> Html msg
+    viewRefreshingNews news =
+        div []
+            [ h1 [] [text "Here are news." ]
+            , p [] [text "Refreshing..."]
+            , viewNews news
+            ]
+
+
+    viewStaleNews : Http.Error -> News -> Html msg
+    viewStaleNews err news =
+        div []
+            [ h1 [] [text "Here are old and stale news." ]
+            , button [onClick RefreshNews] [text "Refresh"]
+            , viewNews news
+            ]
+
+
+    viewNews : News -> Html msg
     ```
 
 #Data types
@@ -78,6 +166,9 @@ Or if the model actually stores the `CachedWebData` itself:
 
 #Sending HTTP requests
 @docs sendRequest, sendRequestWithValue, sendRequestWithCachedData
+
+#Convenience
+@docs refresh
 -}
 
 import Http
@@ -461,3 +552,15 @@ response.
 sendRequestWithCachedData : CachedWebData a -> Http.Request a -> Cmd (CachedWebData a)
 sendRequestWithCachedData cached request =
     sendRequestWithValue (value cached) request
+
+{-|
+Convenience function to set a `CachedRemoteData` value to `Loading` or `Refreshing`
+depending on its initial state.
+-}
+refresh : CachedRemoteData e a -> CachedRemoteData e a
+refresh data =
+    case data of
+        Success v -> Refreshing v
+        Stale _ v -> Refreshing v
+        Refreshing v -> Refreshing v
+        _ -> Loading
