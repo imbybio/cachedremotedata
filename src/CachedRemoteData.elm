@@ -43,7 +43,7 @@ First you wrap the data in `CachedWebData` in your model:
         { news: CachedWebData News }
     ```
 
-The add it in a message that will deliver the response and one that will
+Then add it in a message that will deliver the response and one that will
 trigger a refresh based on user actions:
 
     ```elm
@@ -52,7 +52,7 @@ trigger a refresh based on user actions:
         | RefreshNews
     ```
 
-Now you can create a could of HTTP get function to get and refresh it:
+Now you can create a couple of HTTP functions to get and refresh it:
 
 
     ```elm
