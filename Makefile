@@ -18,9 +18,15 @@ ELM_STUFF = $(abspath elm_stuff)
 # Build tools
 ELM_MAKE = $(NODE_BIN_DIR)/elm-make
 ELM_TEST = $(NODE_BIN_DIR)/elm-test
+ELM_PACKAGE = $(NODE_BIN_DIR)/elm-package
+JQ = jq
 
 # Sources
 ELM_SOURCE = $(SRC_DIR)/CachedRemoteData.elm
+
+# Version
+ELM_PACKAGE_JSON = $(abspath elm-package.json)
+VERSION := $(shell $(JQ) --raw-output '.version' $(ELM_PACKAGE_JSON))
 
 
 #
@@ -41,3 +47,16 @@ test: $(NODE_MODULES)
 clean:
 	rm -rf $(NODE_MODULES)
 	rm -rf $(ELM_STUFF)
+
+
+# Package management targets
+
+bump: $(NODE_MODULES)
+	$(ELM_PACKAGE) bump
+
+tag: $(NODE_MODULES)
+	git tag -a $(VERSION) -m "Release version $(VERSION)"
+	git push origin $(VERSION)
+
+publish: $(NODE_MODULES)
+	$(ELM_PACKAGE) publish
