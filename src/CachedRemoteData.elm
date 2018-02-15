@@ -24,12 +24,44 @@ module CachedRemoteData exposing
     , andThen
     , sendRequest
     , sendRequestWithValue
-    , sendRequestWithCached
+    , sendRequestWithCachedData
     )
 
 {-|
+An extension to the `RemoteData` package that supports cached values. It makes
+no assumptions on how the data is cached and just manipulates a `Maybe a` to
+represent a value that may or may not be known.
 
-An extension to the `RemoteData` package that supports cached values.
+In a similar way to `RemoteData`, it is designed to work with the `Http`
+package:
+
+    ```elm
+    getNews : Cmd Msg
+    getNews =
+        Http.get "/news" decodeNews
+            |> CachedRemoteData.sendRequest
+            |> Cmd.map NewsResponse
+    ```
+
+Or when a cached version of the news is in the model:
+
+    ```elm
+    getNews : Maybe News -> Cmd Msg
+    getNews oldNews =
+        Http.get "/news" decodeNews
+            |> CachedRemoteData.sendRequestWithValue oldNews
+            |> Cmd.map NewsResponse
+    ```
+
+Or if the model actually stores the `CachedWebData` itself:
+
+    ```elm
+    getNews : CachedWebData News -> Cmd Msg
+    getNews oldNews =
+        Http.get "/news" decodeNews
+            |> CachedRemoteData.sendRequestWithCachedData oldNews
+            |> Cmd.map NewsResponse
+    ```
 
 #Data types
 @docs CachedRemoteData, CachedWebData
@@ -45,7 +77,7 @@ An extension to the `RemoteData` package that supports cached values.
 @docs map, map2, map3, andMap, mapError, mapBoth, andThen
 
 #Sending HTTP requests
-@docs sendRequest, sendRequestWithValue, sendRequestWithCached
+@docs sendRequest, sendRequestWithValue, sendRequestWithCachedData
 -}
 
 import Http
@@ -53,7 +85,6 @@ import Result exposing (Result(..))
 import RemoteData exposing (RemoteData)
 
 {-|
-
 A datatype representing fetched data with optional cached value.
 -}
 
@@ -312,26 +343,53 @@ map3 fn d1 d2 d3 =
     map fn d1 |> andMap d2 |> andMap d3
 
 {-|
-Put the results of two `CachedRemoteData` calls together.
+Put the results of two `CachedRemoteData` calls together. This function is
+designed to be piped with the `|>` operator:
+
+    ```
+    map (,,) a
+        |> andMap b
+        |> andMap c
+    ```
+
+As it combines the values of multiple `CachedRemoteData` structures into one,
+it attempts to keep as much information as possible, favour error states over
+loading states and loading states over inactive ones, implementing the
+following precendence:
+
+    `Stale`, `Failure`, `Refreshing`, `Loading`, `NotAsked`, `Success`
+
+Consequently, this function with only return `Success` if both arguments are
+in the `Success` state.
 -}
 andMap : CachedRemoteData e a -> CachedRemoteData e (a -> b) -> CachedRemoteData e b
 andMap adata fndata =
     case (adata, fndata) of
-        (Success v, Success fn) -> Success (fn v)
-        (Success v, Refreshing fn) -> Refreshing (fn v)
-        (Success v, Stale e fn) -> Stale e (fn v)
-        (Refreshing v, Success fn) -> Refreshing (fn v)
-        (Refreshing v, Refreshing fn) -> Refreshing (fn v)
+        -- Both sides have a value, one is Stale --> Stale
+        (Stale _ v, Stale e fn) -> Stale e (fn v)
         (Refreshing v, Stale e fn) -> Stale e (fn v)
-        (Stale e v, Success fn) -> Stale e (fn v)
+        (Success v, Stale e fn) -> Stale e (fn v)
         (Stale e v, Refreshing fn) -> Stale e (fn v)
-        (Stale e v, Stale _ fn) -> Stale e (fn v)
-        (NotAsked, _) -> NotAsked
-        (Loading, _) -> Loading
-        (Failure e, _) -> Failure e
-        (_, NotAsked) -> NotAsked
-        (_, Loading) -> Loading
+        (Stale e v, Success fn) -> Stale e (fn v)
+        -- One side has no value, one is Stale or Failure --> Failure
+        (_, Stale e _) -> Failure e
         (_, Failure e) -> Failure e
+        (Stale e _, _) -> Failure e
+        (Failure e, _) -> Failure e
+        -- Both sides have a value, one is Refreshing --> Refreshing
+        (Refreshing v, Refreshing fn) -> Refreshing (fn v)
+        (Refreshing v, Success fn) -> Refreshing (fn v)
+        (Success v, Refreshing fn) -> Refreshing (fn v)
+        -- One side has not value, one is Refreshing or Loading --> Loading
+        (_, Refreshing _) -> Loading
+        (Refreshing _, _) -> Loading
+        (_, Loading) -> Loading
+        (Loading, _) -> Loading
+        -- One side is NotAsked --> NotAsked
+        (_, NotAsked) -> NotAsked
+        (NotAsked, _) -> NotAsked
+        -- Both sides are Success --> Success
+        (Success v, Success fn) -> Success (fn v)
 
 {-|
 Map a `CachedRemoteData` error from type `e` to type `f`
@@ -400,6 +458,6 @@ Dispatch a `Http.Request`s with an initial `CachedWebData` value. This can
 typically be used when refreshing a previously retrieved `CachedWebData`
 response.
 -}
-sendRequestWithCached : CachedWebData a -> Http.Request a -> Cmd (CachedWebData a)
-sendRequestWithCached cached request =
+sendRequestWithCachedData : CachedWebData a -> Http.Request a -> Cmd (CachedWebData a)
+sendRequestWithCachedData cached request =
     sendRequestWithValue (value cached) request

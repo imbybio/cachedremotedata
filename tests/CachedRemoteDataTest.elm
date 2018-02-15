@@ -237,52 +237,36 @@ mapping =
                         (mapBoth String.length String.length (Stale "err" "ok"))
             ]
         , describe "andMap"
-            [ test "Success a, Success b" <|
-                \() ->
-                    Expect.equal
-                        (Success ("a", "b"))
-                        (map (,) (Success "a") |> andMap (Success "b"))
-            , test "Success a, Refreshing b" <|
-                \() ->
-                    Expect.equal
-                        (Refreshing ("a", "b"))
-                        (map (,) (Success "a") |> andMap (Refreshing "b"))
-            , test "Refreshing a, Success b" <|
-                \() ->
-                    Expect.equal
-                        (Refreshing ("a", "b"))
-                        (map (,) (Refreshing "a") |> andMap (Success "b"))
-            , test "Success a, Stale e b" <|
-                \() ->
-                    Expect.equal
-                        (Stale "err" ("a", "b"))
-                        (map (,) (Success "a") |> andMap (Stale "err" "b"))
-            , test "Stale e a, Success b" <|
-                \() ->
-                    Expect.equal
-                        (Stale "err" ("a", "b"))
-                        (map (,) (Stale "err" "a") |> andMap (Success "b"))
-            , test "Refreshing a, Stale e b" <|
-                \() ->
-                    Expect.equal
-                        (Stale "err" ("a", "b"))
-                        (map (,) (Refreshing "a") |> andMap (Stale "err" "b"))
-            , test "NotAsked, Success b" <|
-                \() ->
-                    Expect.equal
-                        NotAsked
-                        (map (,) NotAsked |> andMap (Success "b"))
-            , test "Success a, Loading" <|
-                \() ->
-                    Expect.equal
-                        Loading
-                        (map (,) (Success "a") |> andMap Loading)
-            , test "Failure e, Success b" <|
-                \() ->
-                    Expect.equal
-                        (Failure "err")
-                        (map (,) (Failure "err") |> andMap (Success "b"))
-            ]
+            (
+                [ (Stale "e1" "a", Stale "e2" "b", Stale "e1" ("a", "b"))
+                , (Stale "e" "a", Refreshing "b", Stale "e" ("a", "b"))
+                , (Stale "e" "a", Success "b", Stale "e" ("a", "b"))
+                , (Refreshing "a", Stale "e" "b", Stale "e" ("a", "b"))
+                , (Success "a", Stale "e" "b", Stale "e" ("a", "b"))
+                , (Stale "e1" "a", Failure "e2", Failure "e1")
+                , (Failure "e1", Stale "e2" "b", Failure "e1")
+                , (Failure "e", Success "b", Failure "e")
+                , (Success "a", Failure "e", Failure "e")
+                , (Stale "e" "a", Loading, Failure "e")
+                , (NotAsked, Stale "e" "b", Failure "e")
+                , (Failure "e", NotAsked, Failure "e")
+                , (Loading, Failure "e", Failure "e")
+                , (Refreshing "a", Refreshing "b", Refreshing ("a", "b"))
+                , (Refreshing "a", Success "b", Refreshing ("a", "b"))
+                , (Success "a", Refreshing "b", Refreshing ("a", "b"))
+                , (Loading, Success "b", Loading)
+                , (NotAsked, Loading, Loading)
+                , (NotAsked, Success "b", NotAsked)
+                , (Success "a", Success "b", Success ("a", "b"))
+                ]
+                |> List.map (
+                    \(a, b, r) ->
+                        test ((toString a)++" | "++(toString b)) <|
+                            \() ->
+                                Expect.equal r (map (,) a |> andMap b)
+
+                    )
+                )
         , describe "map2"
             [ test "Success a, Success b" <|
                 \() ->
