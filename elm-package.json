@@ -1,5 +1,5 @@
 {
-    "version": "1.0.0",
+    "version": "1.0.1",
     "summary": "Extension to the RemoteData package to deal with cached values",
     "repository": "https://github.com/imbybio/cachedremotedata.git",
     "license": "MIT",
